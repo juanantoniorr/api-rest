@@ -1,9 +1,14 @@
 package com.proyecto.springboot.backemd.apirest.controllers;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.NoSuchElementException;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.DataAccessException;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -32,9 +37,26 @@ public class ClienteRestController {
 		
 	}
 	@GetMapping ("/clientes/{id}")
-	public Cliente show(@PathVariable Long id) {
+	public ResponseEntity<?> show(@PathVariable Long id) {
+		Cliente cliente = null; 
+		//Map es la interfaz, hashmap es la implementacion
+				Map<String,Object> response = new HashMap<>();
+		try {
+			cliente = clienteService.findById(id);
+		}
+		catch(DataAccessException ex) {
+			response.put("mensaje", "Error al realizar la consulta en base de datos");
+			response.put("error", ex.getMessage() + " " + ex.getMostSpecificCause());
+			//Se regresa un responseEntity de tipo hashmap con el mensaje
+			return new ResponseEntity<Map<String,Object>>(response,HttpStatus.NOT_FOUND);
+		}
+		catch (NoSuchElementException e) {
+			response.put("mensaje", "El cliente no existe en la base de datos");
+			return new ResponseEntity<Map<String,Object>>(response,HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 		
-		return clienteService.findById(id);
+		return new ResponseEntity<Cliente>(cliente,HttpStatus.OK);
+		
 	}
 	
 	@PostMapping("clientes")
