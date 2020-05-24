@@ -17,7 +17,6 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.ResponseStatus;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.proyecto.springboot.backemd.apirest.models.entity.Cliente;
@@ -60,25 +59,60 @@ public class ClienteRestController {
 	}
 	
 	@PostMapping("clientes")
-	@ResponseStatus (HttpStatus.CREATED)
-	public Cliente create(@RequestBody Cliente cliente) { //Nos envian el cliente por json por eso es el request body
-		return clienteService.save(cliente);
+	public ResponseEntity<?> create(@RequestBody Cliente cliente) { //Nos envian el cliente por json por eso es el request body
+		Map<String,Object> response = new HashMap<>();
+		Cliente clienteCreado = null;
+		try {
+			clienteCreado =clienteService.save(cliente);
+		} catch (DataAccessException ex) {
+			response.put("mensaje", "Ocurrio un error al guardar en BD.");
+			response.put("error", ex.getLocalizedMessage() + ex.getMostSpecificCause().getMessage());
+			return new ResponseEntity<Map<String,Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		response.put("mensaje", "Cliente creado con exito");
+		response.put("Cliente:", clienteCreado);
+		return new ResponseEntity<Map<String,Object>>(response, HttpStatus.CREATED);
 		
 	}
 	
 	@PutMapping("clientes/{id}")
-	public Cliente update(@RequestBody Cliente cliente,@PathVariable Long id) {
-		Cliente clienteActual = clienteService.findById(id);
-		clienteActual.setNombre(cliente.getNombre());
-		clienteActual.setApellido(cliente.getApellido());
-		clienteActual.setEmail(cliente.getEmail());
-		return clienteService.save(clienteActual);
+	public ResponseEntity<?> update(@RequestBody Cliente cliente,@PathVariable Long id) {
+		Map<String,Object> response = new HashMap<>();
+		Cliente clienteActualizado = null;
+		try {
+			Cliente clienteActual = clienteService.findById(id);
+			clienteActual.setNombre(cliente.getNombre());
+			clienteActual.setApellido(cliente.getApellido());
+			clienteActual.setEmail(cliente.getEmail());
+			clienteActualizado = clienteService.save(clienteActual);
+		} catch(DataAccessException ex ){
+			response.put("error", "Ocurrio un error al actualizar en BD");
+			response.put("mensaje", ex.getMostSpecificCause().getMessage());
+			return new ResponseEntity<Map<String,Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		catch (NoSuchElementException e) {
+			response.put("error", "El cliente no existe en BD");
+			return new ResponseEntity<Map<String,Object>>(response, HttpStatus.INTERNAL_SERVER_ERROR);
+		}
+		response.put("mensaje", "Cliente actualizado con éxito");
+		response.put("cliente:", clienteActualizado);
+		return new ResponseEntity<Map<String,Object>>(response, HttpStatus.OK);
 		
 	}
 	@DeleteMapping("clientes/{id}")
-	public void delete(@PathVariable Long id) {
-		clienteService.delete(id);
+	public ResponseEntity<?> delete(@PathVariable Long id) {
+		Map<String,Object> response = new HashMap<>();
+		try {
+			clienteService.delete(id);
+			response.put("Mensaje", "Cliente eliminado");
+			
+		}
+		catch(DataAccessException ex ) {
+			response.put("Error", "Ocurrió un error al intentar borrar el cliente");
+			return new ResponseEntity<Map<String,Object>>(response,HttpStatus.INTERNAL_SERVER_ERROR);
+		}
 		
+		return new ResponseEntity<Map<String,Object>>(response,HttpStatus.OK);
 	}
 	
 	
